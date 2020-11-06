@@ -61,7 +61,7 @@ protected:
     
     
     
-    //shared_ptr<thread>  viewerThread;   
+    shared_ptr<thread>  viewerThread;   
     
     bool    shutDownFlag    =false;
     mutex   shutDownMutex;  

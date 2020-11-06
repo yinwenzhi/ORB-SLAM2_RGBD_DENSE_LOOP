@@ -41,7 +41,7 @@ PointCloudMapping::PointCloudMapping(double resolution_,double meank_,double thr
     voxel.setLeafSize( resolution, resolution, resolution);
     globalMap = boost::make_shared< PointCloud >( );
     
-    //viewerThread = make_shared<thread>( bind(&PointCloudMapping::viewer, this ) );
+    viewerThread = make_shared<thread>( bind(&PointCloudMapping::viewer, this ) );
 }
 
 void PointCloudMapping::shutdown()
@@ -49,9 +49,9 @@ void PointCloudMapping::shutdown()
     {
         unique_lock<mutex> lck(shutDownMutex);
         shutDownFlag = true;
-        //keyFrameUpdated.notify_one();
+        keyFrameUpdated.notify_one();
     }
-    //viewerThread->join();
+    viewerThread->join();
 }
 
 void PointCloudMapping::insertKeyFrame(KeyFrame* kf, cv::Mat& color, cv::Mat& depth,int idk,vector<KeyFrame*> vpKFs)
@@ -94,19 +94,22 @@ void PointCloudMapping::insertKeyFrame2(KeyFrame* kf, cv::Mat& color, cv::Mat& d
 	
 	
 	*globalMap += *cloud2;
+    std::cout << "globalMap->points.size()= " << globalMap->points.size() << std::endl;
 	//过滤
 	PointCloud::Ptr tmp1 ( new PointCloud );
 	statistical_filter.setInputCloud(globalMap);
 	statistical_filter.filter( *tmp1 );
+    std::cout << "tmp1->points.size()= " << tmp1->points.size() << std::endl;
 	//融合
 	PointCloud::Ptr tmp(new PointCloud());
 	voxel.setInputCloud( tmp1 );
 	voxel.filter( *globalMap );
-	//pointcloud2.push_back(pointcloude);
+	// pointcloud2.push_back(pointcloude);
 	cout<<"当前关键帧点云数量为："<<pointcloude.pcE->points.size()<<endl;
 	cout<<"融合后关键帧点云数量为："<<globalMap->points.size()<<endl;
 	
 	numKeyFrame++;
+    keyFrameUpdated.notify_one();
     }
 }
 
@@ -187,7 +190,7 @@ pcl::PointCloud< PointCloudMapping::PointT >::Ptr PointCloudMapping::generatePoi
             tmp->points.push_back(p);
         }
     }
-    
+    std::cout << "tmp->points.size()= " << tmp->points.size() << std::endl;
     //Eigen::Isometry3d T = ORB_SLAM2::Converter::toSE3Quat( kf->GetPose() );
     //PointCloud::Ptr cloud(new PointCloud);
     //pcl::transformPointCloud( *tmp, *cloud, T.inverse().matrix());
@@ -201,11 +204,12 @@ pcl::PointCloud< PointCloudMapping::PointT >::Ptr PointCloudMapping::generatePoi
 void PointCloudMapping::viewer()
 {
     pcl::visualization::CloudViewer viewer("viewer");
+    cout<<"viewer thread start"<<endl;
     while(1)
     {
         
         {
-	    
+            cout<<"viewer thread lock"<<endl;
             unique_lock<mutex> lck_shutdown( shutDownMutex );
             if (shutDownFlag)
             {
@@ -213,25 +217,25 @@ void PointCloudMapping::viewer()
             }
         }
         {
-	    cout<<"view线程进入睡眠××××××××××××××××××××××××××××××××××××"<<endl;
+	        cout<<"view******************************view thread sleep"<<endl;
             unique_lock<mutex> lck_keyframeUpdated( keyFrameUpdateMutex );
             keyFrameUpdated.wait( lck_keyframeUpdated );
         }
         
         // keyframe is updated 
-        cout<<"在view线程中显示点云模型×××××××××××××××××××××××××"<<endl;
+        cout<<"******************************viewer thread show point cloud"<<endl;
         viewer.showCloud( globalMap );
-	cloudbusy=false;
-	/*
-	if(numKeyFrame==100)
-	{
-	    std::ostringstream   ostr;
-	    ostr<<numKeyFrame<<"frame.pcd";
-	    string filename=ostr.str();
-	    pcl::io::savePCDFileBinary(filename, *globalMap );
-	    cloudbusy=false;
-	}
-	*/
+        cloudbusy=false;
+        
+        if(numKeyFrame%10==0)
+        {
+            std::ostringstream   ostr;
+            ostr<<numKeyFrame<<"frame.pcd";
+            string filename=ostr.str();
+            pcl::io::savePCDFileBinary(filename, *globalMap );
+            cloudbusy=false;
+            cout<<"pcd saved "<<endl;
+        }
 	
     }
 }
@@ -265,7 +269,7 @@ void PointCloudMapping::updatecloud()
 			  *tmp1 +=*cloud;
 			  //回环过滤
 			  pointcloud2.push_back(pointcloud[j]);
-			  //cout<<"第pointcloud"<<j<<"与第vpKFs"<<i<<"匹配"<<endl;
+			  cout<<"第pointcloud"<<j<<"与第vpKFs"<<i<<"匹配"<<endl;
 			  break;
 		    }
 		}

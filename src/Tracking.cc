@@ -1471,7 +1471,7 @@ void Tracking::CreateNewKeyFrame()
 
     mpLocalMapper->SetNotStop(false);
     vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
-    cout<<"map地图中维护关键帧数量："<<vpKFs.size()<<"************************************************"<<endl;
+    cout<<"map地图中维护关键帧数量："<<vpKFs.size()<<"vpkfs.size()************************************************"<<endl;
     // insert Key Frame into point cloud viewer
     //mpPointCloudMapping中插入关键帧，并提取关键帧信息存入pointcloud
     //如果关键帧信息和回环帧id相同，则添加至点云模型

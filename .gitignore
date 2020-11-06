@@ -1,0 +1,13 @@
+*/build/*
+Thirdparty/
+build/
+bin/
+Examples/
+Vocabulary/ORBvoc.txt
+tools/bin_vocabulary
+300frame.pcd
+310frame.pcd
+KeyFrameTrajectory.txt
+lib/
+tools/bin_vocabulary
+tools/bin_vocabulary
